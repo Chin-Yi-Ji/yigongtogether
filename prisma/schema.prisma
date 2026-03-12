@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// NextAuth 必備模型
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user") // "user" | "admin"
+  accounts      Account[]
+  sessions      Session[]
+  profile       Profile?
+}
+
+// YigongHub 核心模型
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  handle        String   @unique // URL 名稱 /u/:handle
+  displayName   String
+  avatar        String?
+  tagline       String?  @db.VarChar(30) // 一句話認識（探索卡片用）
+  oneLiner      String?  // 自我介紹
+  cohort        String?  // 屆數（四省中科博館義工）
+  location      String?
+  contactType   String?  // 相容舊資料，請用 contacts
+  contactValue  String?
+  contacts      Json     @default("[]") // [{ "type": "Line", "value": "..." }]
+  isVolunteerFriend Boolean @default(false)
+  futureLooking String?  @db.Text
+  nowLearning   String?
+  nowBuilding   String?
+
+  experiences   Experience[]
+  tags          ProfileTag[]
+  
+  // 隱私設定 (JSON 格式儲存欄位權限)
+  privacyConfig Json     @default("{\"email\": \"private\", \"location\": \"registered\", \"experiences\": \"public\"}")
+  
+  deletedAt     DateTime? // 用戶申請刪除後設為非 null；前台不顯示，僅管理員可見，確認後永久刪除
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Experience {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  type        String   // "work" | "education"
+  title       String
+  org         String
+  start       String
+  end         String?
+  description String?  @db.Text
+  isCurrent   Boolean  @default(false)
+}
+
+model Tag {
+  id      String       @id @default(cuid())
+  name    String       @unique // 已經小寫、去空格後的名稱
+  label   String       // 原始顯示名稱
+  type    String       // "interest" | "expertise" | "topic" | "hashtag"
+  hidden  Boolean      @default(false) // 管理員可隱藏，隱藏後不顯示於探索熱門標籤
+  profiles ProfileTag[]
+}
+
+model ProfileTag {
+  profileId String
+  tagId     String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, tagId])
+}

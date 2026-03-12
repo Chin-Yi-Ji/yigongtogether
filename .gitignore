@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# user uploads
+/public/uploads
+
+# Google OAuth 憑證（勿提交）
+yigongtogether_secret.json
