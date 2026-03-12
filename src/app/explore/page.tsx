@@ -90,7 +90,11 @@ export default async function ExplorePage({
 
         const getMatchingTagIds = async (term: string): Promise<string[]> => {
           const normalized = normalizeTag(term)
-          const tagOr: Array<{ name?: { contains: string; mode: "insensitive" }; label?: { contains: string; mode: "insensitive" }; name?: { equals: string } }> = [
+          const tagOr: Array<
+            | { name: { contains: string; mode: "insensitive" } }
+            | { label: { contains: string; mode: "insensitive" } }
+            | { name: { equals: string } }
+          > = [
             { name: { contains: term, mode: "insensitive" as const } },
             { label: { contains: term, mode: "insensitive" as const } },
           ]
